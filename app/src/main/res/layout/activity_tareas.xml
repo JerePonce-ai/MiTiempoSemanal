@@ -13,16 +13,45 @@
         android:background="?attr/colorSurface"
         app:liftOnScroll="true">
 
-        <com.google.android.material.appbar.MaterialToolbar
-            android:id="@+id/toolbarTareas"
+        <com.google.android.material.appbar.CollapsingToolbarLayout
+            android:id="@+id/collapsingToolbar"
             android:layout_width="match_parent"
-            android:layout_height="?attr/actionBarSize"
-            app:navigationIcon="@drawable/ic_arrow_back"
-            app:navigationIconTint="?attr/colorOnSurface"
-            app:title="@string/title_tareas"
-            app:titleCentered="false"
-            app:titleTextAppearance="?attr/textAppearanceTitleLarge"
-            app:titleTextColor="?attr/colorOnSurface" />
+            android:layout_height="120dp"
+            app:contentScrim="?attr/colorSurface"
+            app:expandedTitleMarginStart="20dp"
+            app:expandedTitleMarginBottom="16dp"
+            app:expandedTitleTextAppearance="?attr/textAppearanceHeadlineMedium"
+            app:layout_scrollFlags="scroll|exitUntilCollapsed|snap"
+            app:title="@string/title_tareas">
+
+            <com.google.android.material.appbar.MaterialToolbar
+                android:id="@+id/toolbarTareas"
+                android:layout_width="match_parent"
+                android:layout_height="?attr/actionBarSize"
+                app:layout_collapseMode="pin"
+                app:navigationIcon="@drawable/ic_arrow_back"
+                app:navigationIconTint="?attr/colorOnSurface" />
+
+        </com.google.android.material.appbar.CollapsingToolbarLayout>
+
+        <!-- Horizontal Scroll Filter Chips (Fase 2) -->
+        <HorizontalScrollView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:clipToPadding="false"
+            android:paddingHorizontal="16dp"
+            android:paddingBottom="8dp"
+            android:scrollbars="none">
+
+            <com.google.android.material.chip.ChipGroup
+                android:id="@+id/chipGroupCategorias"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:selectionRequired="true"
+                app:singleLine="true"
+                app:singleSelection="true" />
+
+        </HorizontalScrollView>
 
     </com.google.android.material.appbar.AppBarLayout>
 
@@ -66,6 +95,7 @@
                 android:src="@drawable/ic_empty_tasks" />
 
             <TextView
+                android:id="@+id/tvEmptyTitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
@@ -75,6 +105,7 @@
                 android:textStyle="bold" />
 
             <TextView
+                android:id="@+id/tvEmptySubtitle"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"

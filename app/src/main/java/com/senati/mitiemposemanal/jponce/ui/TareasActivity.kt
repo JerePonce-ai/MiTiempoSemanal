@@ -3,6 +3,7 @@ package com.senati.mitiemposemanal.jponce.ui
 import android.os.Bundle
 import android.text.Editable
 import android.text.TextWatcher
+import android.view.HapticFeedbackConstants
 import android.view.View
 import android.widget.ArrayAdapter
 import androidx.activity.enableEdgeToEdge
@@ -12,6 +13,7 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.chip.Chip
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.senati.mitiemposemanal.jponce.R
@@ -25,6 +27,9 @@ class TareasActivity : AppCompatActivity() {
     private lateinit var binding: ActivityTareasBinding
     private lateinit var repository: Repository
     private lateinit var adapter: TareaAdapter
+
+    private var todasLasTareas: List<Tarea> = emptyList()
+    private var categoriaFiltroId: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -44,8 +49,6 @@ class TareasActivity : AppCompatActivity() {
             insets
         }
 
-        setSupportActionBar(binding.toolbarTareas)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbarTareas.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
@@ -55,10 +58,12 @@ class TareasActivity : AppCompatActivity() {
         setupRecyclerView()
 
         binding.fabAgregarTarea.setOnClickListener {
+            binding.root.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             mostrarDialogoAgregar()
         }
 
         binding.btnEmptyAgregarTarea.setOnClickListener {
+            binding.root.performHapticFeedback(HapticFeedbackConstants.VIRTUAL_KEY)
             mostrarDialogoAgregar()
         }
 
@@ -84,12 +89,62 @@ class TareasActivity : AppCompatActivity() {
         })
     }
 
+    private fun setupFilterChips() {
+        binding.chipGroupCategorias.removeAllViews()
+        val categorias = repository.obtenerCategorias()
+
+        // Chip "Todas"
+        val chipTodas = Chip(this).apply {
+            text = getString(R.string.filter_all_tasks)
+            isCheckable = true
+            isChecked = (categoriaFiltroId == null)
+            setOnClickListener {
+                categoriaFiltroId = null
+                aplicarFiltro()
+            }
+        }
+        binding.chipGroupCategorias.addView(chipTodas)
+
+        for (cat in categorias) {
+            val chip = Chip(this).apply {
+                text = cat.nombre
+                isCheckable = true
+                isChecked = (categoriaFiltroId == cat.id)
+                setOnClickListener {
+                    categoriaFiltroId = cat.id
+                    aplicarFiltro()
+                }
+            }
+            binding.chipGroupCategorias.addView(chip)
+        }
+    }
+
     private fun cargarTareas() {
-        val lista = repository.obtenerTareas()
-        adapter.submitList(lista)
-        if (lista.isEmpty()) {
+        todasLasTareas = repository.obtenerTareas()
+        setupFilterChips()
+        aplicarFiltro()
+    }
+
+    private fun aplicarFiltro() {
+        val listaFiltrada = if (categoriaFiltroId == null) {
+            todasLasTareas
+        } else {
+            todasLasTareas.filter { it.categoriaId == categoriaFiltroId }
+        }
+
+        adapter.submitList(listaFiltrada)
+
+        if (listaFiltrada.isEmpty()) {
             binding.rvTareas.visibility = View.GONE
             binding.layoutEmpty.visibility = View.VISIBLE
+
+            if (categoriaFiltroId != null) {
+                binding.tvEmptyTitle.text = getString(R.string.empty_category_tasks_title)
+                binding.tvEmptySubtitle.text = getString(R.string.empty_category_tasks_subtitle)
+            } else {
+                binding.tvEmptyTitle.text = getString(R.string.empty_tasks_title)
+                binding.tvEmptySubtitle.text = getString(R.string.empty_tasks_subtitle)
+            }
         } else {
             binding.rvTareas.visibility = View.VISIBLE
             binding.layoutEmpty.visibility = View.GONE
@@ -145,16 +200,21 @@ class TareasActivity : AppCompatActivity() {
                 hayError = true
             }
 
-            if (hayError) return@setOnClickListener
+            if (hayError) {
+                binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
+                return@setOnClickListener
+            }
 
             val resultado = repository.insertarTarea(nombre, categoriaSeleccionadaId!!)
             if (resultado.first) {
+                binding.root.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 bindingDialog.tilNombreTarea.error = null
                 bindingDialog.tilCategoria.error = null
                 dialog.dismiss()
                 Snackbar.make(binding.root, resultado.second, Snackbar.LENGTH_SHORT).show()
                 cargarTareas()
             } else {
+                binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
                 bindingDialog.tilNombreTarea.error = resultado.second
             }
         }
@@ -174,7 +234,6 @@ class TareasActivity : AppCompatActivity() {
         val adapterCategorias = ArrayAdapter(this, android.R.layout.simple_dropdown_item_1line, nombresCategorias)
         bindingDialog.actvCategoria.setAdapter(adapterCategorias)
 
-        // Pre-seleccionar la categoría actual
         bindingDialog.actvCategoria.setText(tarea.categoriaNombre, false)
         var categoriaSeleccionadaId: Int = tarea.categoriaId
 
@@ -204,34 +263,48 @@ class TareasActivity : AppCompatActivity() {
             val nuevoNombre = bindingDialog.etNombreTarea.text.toString().trim()
             if (nuevoNombre.isEmpty()) {
                 bindingDialog.tilNombreTarea.error = getString(R.string.error_empty_name)
+                binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
                 return@setOnClickListener
             }
 
             val resultado = repository.actualizarTarea(tarea.id, nuevoNombre, categoriaSeleccionadaId)
             if (resultado.first) {
+                binding.root.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
                 bindingDialog.tilNombreTarea.error = null
                 bindingDialog.tilCategoria.error = null
                 dialog.dismiss()
                 Snackbar.make(binding.root, resultado.second, Snackbar.LENGTH_SHORT).show()
                 cargarTareas()
             } else {
+                binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
                 bindingDialog.tilNombreTarea.error = resultado.second
             }
         }
     }
 
     private fun confirmarEliminar(tarea: Tarea) {
-        MaterialAlertDialogBuilder(this)
-            .setTitle(R.string.dialog_delete_task_title)
-            .setMessage(getString(R.string.dialog_confirm_delete_task, tarea.nombre))
-            .setPositiveButton(R.string.btn_delete) { _, _ ->
-                val resultado = repository.eliminarTarea(tarea.id)
-                Snackbar.make(binding.root, resultado.second, Snackbar.LENGTH_SHORT).show()
-                if (resultado.first) {
-                    cargarTareas()
+        val cantidadEventos = repository.obtenerCantidadEventosPorTarea(tarea.id)
+        if (cantidadEventos > 0) {
+            binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_cannot_delete_title)
+                .setMessage(getString(R.string.dialog_task_has_events_message, cantidadEventos))
+                .setPositiveButton(R.string.btn_understood, null)
+                .show()
+        } else {
+            MaterialAlertDialogBuilder(this)
+                .setTitle(R.string.dialog_delete_task_title)
+                .setMessage(getString(R.string.dialog_confirm_delete_task, tarea.nombre))
+                .setPositiveButton(R.string.btn_delete) { _, _ ->
+                    val resultado = repository.eliminarTarea(tarea.id)
+                    Snackbar.make(binding.root, resultado.second, Snackbar.LENGTH_SHORT).show()
+                    if (resultado.first) {
+                        binding.root.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                        cargarTareas()
+                    }
                 }
-            }
-            .setNegativeButton(R.string.btn_cancel, null)
-            .show()
+                .setNegativeButton(R.string.btn_cancel, null)
+                .show()
+        }
     }
 }

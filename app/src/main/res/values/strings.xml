@@ -1,11 +1,19 @@
 <resources>
     <string name="app_name">MiTiempoSemanal</string>
+    <string name="user_name">Jeremy Ponce</string>
     <string name="main_title">Mi Tiempo Semanal</string>
     <string name="main_subtitle_format">%1$s · v%2$s (%3$d)</string>
+
+    <!-- Main Navigation Titles & Descs -->
     <string name="title_categorias">Categorías</string>
     <string name="title_tareas">Tareas</string>
+    <string name="title_eventos">Eventos</string>
     <string name="desc_categorias">Organiza tus actividades por tipo</string>
     <string name="desc_tareas">Gestiona tus tareas habituales</string>
+    <string name="desc_eventos">Mide el tiempo dedicado a tus tareas</string>
+
+    <!-- Main Banner Active Event -->
+    <string name="main_banner_in_progress">En curso: %1$s · %2$s</string>
 
     <!-- Plurals -->
     <plurals name="cantidad_categorias">
@@ -15,6 +23,10 @@
     <plurals name="cantidad_tareas">
         <item quantity="one">%d tarea</item>
         <item quantity="other">%d tareas</item>
+    </plurals>
+    <plurals name="cantidad_eventos">
+        <item quantity="one">%d evento</item>
+        <item quantity="other">%d eventos</item>
     </plurals>
 
     <!-- Category Empty State -->
@@ -26,6 +38,13 @@
     <string name="empty_tasks_title">No hay tareas</string>
     <string name="empty_tasks_subtitle">Crea tareas y asígnales una categoría para organizar tu tiempo semanal.</string>
     <string name="action_add_task">Nueva tarea</string>
+    <string name="empty_category_tasks_title">Sin tareas</string>
+    <string name="empty_category_tasks_subtitle">No hay tareas registradas en esta categoría.</string>
+    <string name="filter_all_tasks">Todas</string>
+
+    <!-- Event Empty State -->
+    <string name="empty_events_title">Aún no registraste eventos</string>
+    <string name="empty_events_subtitle">Busca o crea una tarea arriba y pulsa Iniciar para medir tu tiempo.</string>
 
     <!-- Dialogs -->
     <string name="dialog_add_category_title">Nueva Categoría</string>
@@ -37,13 +56,39 @@
 
     <string name="dialog_category_has_tasks_title">No se puede eliminar</string>
     <string name="dialog_category_has_tasks_message">Esta categoría tiene %1$d tarea(s). Elimina o reasigna esas tareas primero.</string>
+    <string name="dialog_cannot_delete_title">No se puede eliminar</string>
+    <string name="dialog_task_has_events_message">No se puede eliminar: esta tarea tiene %1$d evento(s) registrado(s)</string>
     <string name="dialog_confirm_delete_category">¿Estás seguro de que deseas eliminar la categoría "%1$s"?</string>
     <string name="dialog_confirm_delete_task">¿Estás seguro de que deseas eliminar la tarea "%1$s"?</string>
 
+    <string name="dialog_new_task_for_event_title">Nueva Tarea</string>
+    <string name="dialog_new_task_for_event_subtitle">La tarea «%1$s» no existe. Selecciona su categoría para crearla e iniciar el evento:</string>
+
     <string name="btn_save">Guardar</string>
+    <string name="btn_confirm">Confirmar</string>
     <string name="btn_cancel">Cancelar</string>
     <string name="btn_delete">Eliminar</string>
     <string name="btn_understood">Entendido</string>
+    <string name="btn_start_event">Iniciar</string>
+    <string name="btn_stop_event">Finalizar</string>
+
+    <!-- Event Screen Strings -->
+    <string name="card_new_event_title">Nuevo evento</string>
+    <string name="card_in_progress_title">En curso</string>
+    <string name="hint_search_or_create_task">Buscar o escribir tarea&#8230;</string>
+    <string name="event_started_at">Inició a las %1$s</string>
+    <string name="section_history_title">Historial de eventos</string>
+    <string name="search_create_new_task_item">Crear «%1$s»</string>
+
+    <!-- Greetings & Week Stats -->
+    <string name="greeting_morning">Buenos días</string>
+    <string name="greeting_afternoon">Buenas tardes</string>
+    <string name="greeting_evening">Buenas noches</string>
+    <string name="week_summary_title">Tu semana</string>
+    <string name="week_summary_empty">Sin tiempo registrado en los últimos 7 días</string>
+    <string name="week_summary_total">Total registrado esta semana: %1$s</string>
+    <string name="header_today">Hoy</string>
+    <string name="header_yesterday">Ayer</string>
 
     <!-- Input hints & errors -->
     <string name="hint_category_name">Nombre de la categoría</string>
@@ -53,6 +98,7 @@
     <string name="error_duplicate_name">Ya existe un registro con este nombre</string>
     <string name="error_no_category_selected">Debes seleccionar una categoría</string>
     <string name="error_create_category_first">Debes crear al menos una categoría primero</string>
+    <string name="error_empty_task_input">Ingresa o busca una tarea para iniciar el evento</string>
 
     <!-- Content Descriptions -->
     <string name="cd_app_logo">Logo de la aplicación</string>
@@ -64,4 +110,6 @@
     <string name="cd_add_category">Agregar nueva categoría</string>
     <string name="cd_add_task">Agregar nueva tarea</string>
     <string name="cd_empty_state_icon">Icono de lista vacía</string>
+    <string name="cd_clear_search">Limpiar búsqueda</string>
+    <string name="cd_active_event_indicator">Indicador de evento en curso</string>
 </resources>

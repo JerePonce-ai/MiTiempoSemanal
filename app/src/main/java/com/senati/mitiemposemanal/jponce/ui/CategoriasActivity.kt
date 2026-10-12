@@ -43,8 +43,6 @@ class CategoriasActivity : AppCompatActivity() {
             insets
         }
 
-        setSupportActionBar(binding.toolbarCategorias)
-        supportActionBar?.setDisplayHomeAsUpEnabled(true)
         binding.toolbarCategorias.setNavigationOnClickListener {
             onBackPressedDispatcher.onBackPressed()
         }
