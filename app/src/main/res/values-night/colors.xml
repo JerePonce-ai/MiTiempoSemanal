@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Material 3 Palette (Dark) -->
+    <color name="md_theme_light_primary">#C4BFFF</color>
+    <color name="md_theme_light_onPrimary">#2A1FA3</color>
+    <color name="md_theme_light_primaryContainer">#4237C0</color>
+    <color name="md_theme_light_onPrimaryContainer">#E5E1FF</color>
+
+    <color name="md_theme_light_secondary">#C7C5DC</color>
+    <color name="md_theme_light_onSecondary">#2F2E42</color>
+    <color name="md_theme_light_secondaryContainer">#464559</color>
+    <color name="md_theme_light_onSecondaryContainer">#E4E1F9</color>
+
+    <color name="md_theme_light_tertiary">#FFB3B0</color>
+    <color name="md_theme_light_onTertiary">#5F1418</color>
+    <color name="md_theme_light_tertiaryContainer">#812B2F</color>
+    <color name="md_theme_light_onTertiaryContainer">#FFDAD8</color>
+
+    <color name="md_theme_light_background">#121118</color>
+    <color name="md_theme_light_onBackground">#E4E1EA</color>
+    <color name="md_theme_light_surface">#121118</color>
+    <color name="md_theme_light_onSurface">#E4E1EA</color>
+    <color name="md_theme_light_surfaceVariant">#46464F</color>
+    <color name="md_theme_light_onSurfaceVariant">#C7C5D0</color>
+    <color name="md_theme_light_surfaceContainer">#1E1C26</color>
+
+    <color name="md_theme_light_outline">#908F9A</color>
+    <color name="md_theme_light_outlineVariant">#46464F</color>
+
+    <color name="md_theme_light_error">#FFB4AB</color>
+    <color name="md_theme_light_onError">#690005</color>
+    <color name="md_theme_light_errorContainer">#93000A</color>
+    <color name="md_theme_light_onErrorContainer">#FFDAD6</color>
+
+    <!-- Category Specific Colors (Dark) -->
+    <color name="cat_estudio_bg">#4237C0</color>
+    <color name="cat_estudio_icon">#C4BFFF</color>
+    <color name="cat_trabajo_bg">#812B2F</color>
+    <color name="cat_trabajo_icon">#FFB3B0</color>
+    <color name="cat_descanso_bg">#005228</color>
+    <color name="cat_descanso_icon">#82FAAA</color>
+    <color name="cat_ocio_bg">#6A3C00</color>
+    <color name="cat_ocio_icon">#FFB960</color>
+
+    <color name="cat_generic_1_bg">#004B76</color>
+    <color name="cat_generic_1_icon">#96CCFF</color>
+    <color name="cat_generic_2_bg">#7A276F</color>
+    <color name="cat_generic_2_icon">#FFAFE8</color>
+    <color name="cat_generic_3_bg">#00504C</color>
+    <color name="cat_generic_3_icon">#80D5CF</color>
+    <color name="cat_generic_4_bg">#713700</color>
+    <color name="cat_generic_4_icon">#FFB68C</color>
+</resources>
