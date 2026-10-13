@@ -85,7 +85,7 @@
             android:gravity="center"
             android:textAppearance="?attr/textAppearanceLabelLarge"
             android:textColor="?attr/colorOnPrimaryContainer"
-            tools:text="Jeremy Ponce · v0.2.0 (2)"
+            tools:text="Jeremy Ponce · v1.0.0 (4)"
             app:layout_constraintEnd_toEndOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toBottomOf="@id/tvMainTitle" />
@@ -195,7 +195,7 @@
                         android:textStyle="bold"
                         tools:text="Total registrado esta semana: 3 h 15 min" />
 
-                    <!-- Segmented Progress Bar Container (Ajuste 3: 10dp con esquinas redondeadas uniformes) -->
+                    <!-- Segmented Progress Bar Container -->
                     <com.google.android.material.card.MaterialCardView
                         android:id="@+id/cardSegmentedBarContainer"
                         android:layout_width="match_parent"
@@ -299,7 +299,6 @@
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
-                        <!-- Ajuste 4: Unificado a primary -->
                         <TextView
                             android:id="@+id/tvCountCategorias"
                             android:layout_width="wrap_content"
@@ -385,7 +384,6 @@
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
-                        <!-- Ajuste 4: Unificado a primary -->
                         <TextView
                             android:id="@+id/tvCountTareas"
                             android:layout_width="wrap_content"
@@ -417,6 +415,7 @@
                 android:id="@+id/btnEventos"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
                 android:clickable="true"
                 android:focusable="true"
                 app:cardBackgroundColor="?attr/colorSurfaceContainer"
@@ -470,7 +469,6 @@
                             android:textAppearance="?attr/textAppearanceBodyMedium"
                             android:textColor="?attr/colorOnSurfaceVariant" />
 
-                        <!-- Ajuste 4: Unificado a primary -->
                         <TextView
                             android:id="@+id/tvCountEventos"
                             android:layout_width="wrap_content"
@@ -484,6 +482,90 @@
 
                     <ImageView
                         android:id="@+id/ivArrowEventos"
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="@null"
+                        android:src="@drawable/ic_chevron_right"
+                        app:tint="?attr/colorOnSurfaceVariant"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toEndOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                </androidx.constraintlayout.widget.ConstraintLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
+            <!-- Card Reportes (Sprint 4) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/btnReportes"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:clickable="true"
+                android:focusable="true"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                app:cardCornerRadius="20dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+
+                <androidx.constraintlayout.widget.ConstraintLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:padding="20dp">
+
+                    <ImageView
+                        android:id="@+id/ivIconReportes"
+                        android:layout_width="52dp"
+                        android:layout_height="52dp"
+                        android:background="@drawable/bg_circle_avatar"
+                        android:backgroundTint="?attr/colorSecondaryContainer"
+                        android:contentDescription="@null"
+                        android:padding="12dp"
+                        android:src="@drawable/ic_bar_chart"
+                        app:tint="?attr/colorSecondary"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintStart_toStartOf="parent"
+                        app:layout_constraintTop_toTopOf="parent" />
+
+                    <LinearLayout
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="16dp"
+                        android:layout_marginEnd="8dp"
+                        android:orientation="vertical"
+                        app:layout_constraintBottom_toBottomOf="parent"
+                        app:layout_constraintEnd_toStartOf="@id/ivArrowReportes"
+                        app:layout_constraintStart_toEndOf="@id/ivIconReportes"
+                        app:layout_constraintTop_toTopOf="parent">
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/title_reportes"
+                            android:textAppearance="?attr/textAppearanceTitleMedium"
+                            android:textColor="?attr/colorOnSurface"
+                            android:textStyle="bold" />
+
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="2dp"
+                            android:text="@string/desc_reportes"
+                            android:textAppearance="?attr/textAppearanceBodyMedium"
+                            android:textColor="?attr/colorOnSurfaceVariant" />
+
+                        <TextView
+                            android:id="@+id/tvCountReportes"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="6dp"
+                            android:textAppearance="?attr/textAppearanceLabelLarge"
+                            android:textColor="?attr/colorPrimary"
+                            tools:text="0 reportes" />
+
+                    </LinearLayout>
+
+                    <ImageView
+                        android:id="@+id/ivArrowReportes"
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:contentDescription="@null"
