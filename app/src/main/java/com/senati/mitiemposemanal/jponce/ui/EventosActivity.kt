@@ -3,6 +3,7 @@
 package com.senati.mitiemposemanal.jponce.ui
 
 import android.content.res.ColorStateList
+import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -17,15 +18,19 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.LinearLayoutManager
+import com.google.android.material.color.MaterialColors
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.google.android.material.snackbar.Snackbar
 import com.senati.mitiemposemanal.jponce.R
 import com.senati.mitiemposemanal.jponce.data.Repository
 import com.senati.mitiemposemanal.jponce.databinding.ActivityEventosBinding
 import com.senati.mitiemposemanal.jponce.databinding.DialogNuevaTareaEventoBinding
+import com.senati.mitiemposemanal.jponce.databinding.ItemResumenSemanaBinding
 import com.senati.mitiemposemanal.jponce.model.Evento
 import com.senati.mitiemposemanal.jponce.model.Tarea
+import com.senati.mitiemposemanal.jponce.util.SemanaUtil
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 
@@ -87,6 +92,7 @@ class EventosActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        actualizarPanelResumenSemanal(animar = false)
         actualizarEstadoEvento()
         cargarHistorial()
     }
@@ -211,6 +217,7 @@ class EventosActivity : AppCompatActivity() {
             selectedTarea = null
             actualizarEstadoEvento()
             cargarHistorial()
+            actualizarPanelResumenSemanal(animar = false)
             Snackbar.make(binding.root, resultado.second, Snackbar.LENGTH_SHORT).show()
         } else {
             binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -263,6 +270,7 @@ class EventosActivity : AppCompatActivity() {
                 selectedTarea = null
                 actualizarEstadoEvento()
                 cargarHistorial()
+                actualizarPanelResumenSemanal(animar = false)
                 Snackbar.make(binding.root, resultado.second, Snackbar.LENGTH_SHORT).show()
             } else {
                 binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -277,6 +285,7 @@ class EventosActivity : AppCompatActivity() {
             binding.root.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
             actualizarEstadoEvento()
             cargarHistorial()
+            actualizarPanelResumenSemanal(animar = true)
             Snackbar.make(binding.root, resultado.second, Snackbar.LENGTH_LONG).show()
         } else {
             binding.root.performHapticFeedback(HapticFeedbackConstants.REJECT)
@@ -332,5 +341,95 @@ class EventosActivity : AppCompatActivity() {
             binding.rvHistorialEventos.visibility = View.VISIBLE
             binding.layoutEmptyEvents.visibility = View.GONE
         }
+    }
+
+    private fun actualizarPanelResumenSemanal(animar: Boolean = false) {
+        val hoy = LocalDate.now()
+        val lunes = SemanaUtil.inicioDeSemana(hoy)
+        val desde = SemanaUtil.desdeISO(lunes)
+        val hasta = SemanaUtil.hastaISO(lunes)
+
+        binding.tvWeekRangeTitle.text = SemanaUtil.etiquetaDeRango(lunes)
+
+        val resumenes = repository.obtenerResumenSemanal(desde, hasta)
+        binding.containerResumenSemanal.removeAllViews()
+
+        var sumaSegundosCategorias = 0L
+
+        val outlineColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOutline, Color.GRAY)
+        val surfaceVariantColor = MaterialColors.getColor(this, com.google.android.material.R.attr.colorSurfaceContainerHigh, Color.LTGRAY)
+
+        for (item in resumenes) {
+            sumaSegundosCategorias += item.segundos
+            val pctStr = SemanaUtil.formatearPorcentajeFila(item.segundos)
+            val tiempoStr = SemanaUtil.formatearTiempo(item.segundos)
+            val style = CategoryStyleHelper.getStyle(this, item.nombre)
+
+            val rowBinding = ItemResumenSemanaBinding.inflate(layoutInflater, binding.containerResumenSemanal, false)
+            rowBinding.tvResumenName.text = item.nombre
+            rowBinding.tvResumenTime.text = tiempoStr
+            rowBinding.tvResumenPercentage.text = pctStr
+
+            rowBinding.ivResumenIcon.setImageResource(style.iconRes)
+            rowBinding.ivResumenIcon.backgroundTintList = ColorStateList.valueOf(style.backgroundColor)
+            rowBinding.ivResumenIcon.imageTintList = ColorStateList.valueOf(style.iconColor)
+
+            rowBinding.progressResumen.setIndicatorColor(style.iconColor)
+
+            // Mínimo visual de 150 (de max 10000) para que se aprecie la cuña si segundos > 0; no altera el porcentaje mostrado
+            val pctVal = SemanaUtil.porcentaje(item.segundos)
+            val progressVal = if (item.segundos > 0L) {
+                maxOf(150, (pctVal * 100.0).toInt().coerceIn(0, 10000))
+            } else {
+                0
+            }
+            rowBinding.progressResumen.setProgressCompat(progressVal, animar)
+
+            rowBinding.layoutResumenRow.contentDescription = getString(R.string.cd_resumen_row, item.nombre, pctStr, tiempoStr)
+
+            rowBinding.layoutResumenRow.setOnClickListener {
+                val pctExacto = SemanaUtil.formatearPorcentajeExacto(item.segundos)
+                val mensaje = getString(R.string.snackbar_resumen_exacto, item.nombre, tiempoStr, pctExacto)
+                Snackbar.make(binding.root, mensaje, Snackbar.LENGTH_LONG).show()
+            }
+
+            binding.containerResumenSemanal.addView(rowBinding.root)
+        }
+
+        // Fila "Sin registrar"
+        val sinRegSegundos = SemanaUtil.sinRegistrarSegundos(sumaSegundosCategorias)
+        val pctSinRegStr = SemanaUtil.formatearPorcentajeSinRegistrar(sumaSegundosCategorias, sinRegSegundos)
+        val tiempoSinRegStr = SemanaUtil.formatearTiempo(sinRegSegundos)
+        val sinRegNombre = getString(R.string.unregistered_label)
+
+        val rowSinRegBinding = ItemResumenSemanaBinding.inflate(layoutInflater, binding.containerResumenSemanal, false)
+        rowSinRegBinding.tvResumenName.text = sinRegNombre
+        rowSinRegBinding.tvResumenTime.text = tiempoSinRegStr
+        rowSinRegBinding.tvResumenPercentage.text = pctSinRegStr
+
+        rowSinRegBinding.ivResumenIcon.setImageResource(R.drawable.ic_timer)
+        rowSinRegBinding.ivResumenIcon.backgroundTintList = ColorStateList.valueOf(surfaceVariantColor)
+        rowSinRegBinding.ivResumenIcon.imageTintList = ColorStateList.valueOf(outlineColor)
+
+        rowSinRegBinding.progressResumen.setIndicatorColor(outlineColor)
+
+        // Mínimo visual de 150 (de max 10000) para que se aprecie la cuña si sinRegSegundos > 0; no altera el porcentaje mostrado
+        val pctSinRegVal = SemanaUtil.porcentaje(sinRegSegundos)
+        val progressSinRegVal = if (sinRegSegundos > 0L) {
+            maxOf(150, (pctSinRegVal * 100.0).toInt().coerceIn(0, 10000))
+        } else {
+            0
+        }
+        rowSinRegBinding.progressResumen.setProgressCompat(progressSinRegVal, animar)
+
+        rowSinRegBinding.layoutResumenRow.contentDescription = getString(R.string.cd_resumen_row, sinRegNombre, pctSinRegStr, tiempoSinRegStr)
+
+        rowSinRegBinding.layoutResumenRow.setOnClickListener {
+            val pctExacto = SemanaUtil.formatearPorcentajeExacto(sinRegSegundos)
+            val mensaje = getString(R.string.snackbar_resumen_exacto, sinRegNombre, tiempoSinRegStr, pctExacto)
+            Snackbar.make(binding.root, mensaje, Snackbar.LENGTH_LONG).show()
+        }
+
+        binding.containerResumenSemanal.addView(rowSinRegBinding.root)
     }
 }
