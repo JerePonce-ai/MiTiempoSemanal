@@ -23,6 +23,7 @@ import com.senati.mitiemposemanal.jponce.model.Evento
 import com.senati.mitiemposemanal.jponce.ui.CategoriasActivity
 import com.senati.mitiemposemanal.jponce.ui.CategoryStyleHelper
 import com.senati.mitiemposemanal.jponce.ui.EventosActivity
+import com.senati.mitiemposemanal.jponce.ui.ReportesActivity
 import com.senati.mitiemposemanal.jponce.ui.TareasActivity
 import com.senati.mitiemposemanal.jponce.util.SemanaUtil
 import java.time.Duration
@@ -65,6 +66,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         repository = Repository(this)
+        repository.verificarYGenerarCierresSemanales()
 
         ViewCompat.setOnApplyWindowInsetsListener(binding.main) { _, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
@@ -72,7 +74,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Subtítulo exacto requerido: "[NOMBRE] · v0.3.0 (3)"
+        // Subtítulo exacto requerido: "[NOMBRE] · v1.0.0 (4)"
         binding.tvSubtitle.text = getString(
             R.string.main_subtitle_format,
             getString(R.string.user_name),
@@ -92,6 +94,10 @@ class MainActivity : AppCompatActivity() {
             startActivity(Intent(this, EventosActivity::class.java))
         }
 
+        binding.btnReportes.setOnClickListener {
+            startActivity(Intent(this, ReportesActivity::class.java))
+        }
+
         binding.cardActiveBanner.setOnClickListener {
             startActivity(Intent(this, EventosActivity::class.java))
         }
@@ -99,6 +105,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        repository.verificarYGenerarCierresSemanales()
         actualizarSaludo()
         actualizarContadores()
         actualizarBannerEnCurso()
@@ -140,6 +147,13 @@ class MainActivity : AppCompatActivity() {
             R.plurals.cantidad_eventos,
             eventCount,
             eventCount
+        )
+
+        val reportCount = repository.obtenerCantidadReportes()
+        binding.tvCountReportes.text = resources.getQuantityString(
+            R.plurals.cantidad_reportes,
+            reportCount,
+            reportCount
         )
     }
 

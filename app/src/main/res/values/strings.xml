@@ -8,9 +8,11 @@
     <string name="title_categorias">Categorías</string>
     <string name="title_tareas">Tareas</string>
     <string name="title_eventos">Eventos</string>
+    <string name="title_reportes">Reportes</string>
     <string name="desc_categorias">Organiza tus actividades por tipo</string>
     <string name="desc_tareas">Gestiona tus tareas habituales</string>
     <string name="desc_eventos">Mide el tiempo dedicado a tus tareas</string>
+    <string name="desc_reportes">Consulta tus reportes semanales</string>
 
     <!-- Main Banner Active Event -->
     <string name="main_banner_in_progress">En curso: %1$s · %2$s</string>
@@ -27,6 +29,10 @@
     <plurals name="cantidad_eventos">
         <item quantity="one">%d evento</item>
         <item quantity="other">%d eventos</item>
+    </plurals>
+    <plurals name="cantidad_reportes">
+        <item quantity="one">%d reporte</item>
+        <item quantity="other">%d reportes</item>
     </plurals>
 
     <!-- Category Empty State -->
@@ -46,6 +52,13 @@
     <string name="empty_events_title">Aún no registraste eventos</string>
     <string name="empty_events_subtitle">Busca o crea una tarea arriba y pulsa Iniciar para medir tu tiempo.</string>
 
+    <!-- Report Empty State -->
+    <string name="empty_reports_title">Aún no hay reportes</string>
+    <string name="empty_reports_subtitle">Los reportes se generan automáticamente al finalizar cada semana.</string>
+    <string name="hint_select_week">Selecciona una semana</string>
+    <string name="section_week_report_title">Resumen del reporte</string>
+    <string name="section_week_events_title">Eventos de esta semana</string>
+
     <!-- Dialogs -->
     <string name="dialog_add_category_title">Nueva Categoría</string>
     <string name="dialog_edit_category_title">Editar Categoría</string>
@@ -56,6 +69,7 @@
 
     <string name="dialog_category_has_tasks_title">No se puede eliminar</string>
     <string name="dialog_category_has_tasks_message">Esta categoría tiene %1$d tarea(s). Elimina o reasigna esas tareas primero.</string>
+    <string name="dialog_category_has_reports_message">Esta categoría se encuentra registrada en reportes semanales anteriores. No se puede eliminar.</string>
     <string name="dialog_cannot_delete_title">No se puede eliminar</string>
     <string name="dialog_task_has_events_message">No se puede eliminar: esta tarea tiene %1$d evento(s) registrado(s)</string>
     <string name="dialog_confirm_delete_category">¿Estás seguro de que deseas eliminar la categoría "%1$s"?</string>

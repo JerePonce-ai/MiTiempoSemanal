@@ -5,12 +5,18 @@ package com.senati.mitiemposemanal.jponce.data
 import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
+import android.database.sqlite.SQLiteDatabase
 import com.senati.mitiemposemanal.jponce.model.Categoria
 import com.senati.mitiemposemanal.jponce.model.Evento
+import com.senati.mitiemposemanal.jponce.model.ReporteItem
 import com.senati.mitiemposemanal.jponce.model.ResumenCategoria
+import com.senati.mitiemposemanal.jponce.model.SemanaReporte
 import com.senati.mitiemposemanal.jponce.model.Tarea
+import com.senati.mitiemposemanal.jponce.util.SemanaUtil
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.format.DateTimeFormatter
 
 class Repository(context: Context) {
 
@@ -112,7 +118,26 @@ class Repository(context: Context) {
     }
 
     fun eliminarCategoria(id: Int): Pair<Boolean, String> {
+        val cantidadTareas = obtenerCantidadTareasPorCategoria(id)
+        if (cantidadTareas > 0) {
+            return Pair(false, "Esta categoría tiene tareas asociadas. Elimina o reasigna esas tareas primero.")
+        }
+
         val db = dbHelper.writableDatabase
+        val cursorRep = db.rawQuery(
+            "SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTES} WHERE ${DatabaseHelper.COLUMN_REPORTE_CATEGORIA_ID} = ?",
+            arrayOf(id.toString())
+        )
+        var tieneReportes = false
+        cursorRep.use {
+            if (it.moveToFirst() && it.getInt(0) > 0) {
+                tieneReportes = true
+            }
+        }
+        if (tieneReportes) {
+            return Pair(false, "Esta categoría se encuentra registrada en reportes semanales anteriores. No se puede eliminar.")
+        }
+
         return try {
             val rows = db.delete(
                 DatabaseHelper.TABLE_CATEGORIAS,
@@ -125,7 +150,9 @@ class Repository(context: Context) {
                 Pair(false, "No se pudo eliminar la categoría")
             }
         } catch (e: SQLiteConstraintException) {
-            Pair(false, "Esta categoría tiene tareas asociadas. Elimina o reasigna esas tareas primero.")
+            Pair(false, "Esta categoría se encuentra registrada en reportes semanales anteriores. No se puede eliminar.")
+        } catch (e: Exception) {
+            Pair(false, "No se pudo eliminar la categoría")
         }
     }
 
@@ -491,6 +518,7 @@ class Repository(context: Context) {
                 if (rows > 0) {
                     db.setTransactionSuccessful()
                     val formatoDuracion = formatearDuracionLegible(duracionSegundos)
+                    verificarYGenerarCierresSemanales()
                     Pair(true, "Registraste $formatoDuracion en ${activo.tareaNombre}")
                 } else {
                     Pair(false, "No se pudo finalizar el evento")
@@ -613,6 +641,306 @@ class Repository(context: Context) {
             }
         }
         return lista
+    }
+
+    // ==================== CIERRE SEMANAL AUTOMÁTICO (HU-07 SPRINT 4) ====================
+
+    fun verificarYGenerarCierresSemanales(): Int {
+        val hoy = LocalDate.now()
+        val lunesActual = SemanaUtil.inicioDeSemana(hoy)
+        val db = dbHelper.writableDatabase
+
+        val queryMin = """
+            SELECT MIN(${DatabaseHelper.COLUMN_EVENTO_INICIO}) 
+            FROM ${DatabaseHelper.TABLE_EVENTOS} 
+            WHERE ${DatabaseHelper.COLUMN_EVENTO_FIN} IS NOT NULL 
+              AND ${DatabaseHelper.COLUMN_EVENTO_INICIO} < ?
+        """.trimIndent()
+
+        var minInicioStr: String? = null
+        val cursorMin = db.rawQuery(queryMin, arrayOf(SemanaUtil.desdeISO(lunesActual)))
+        cursorMin.use {
+            if (it.moveToFirst() && !it.isNull(0)) {
+                minInicioStr = it.getString(0)
+            }
+        }
+
+        if (minInicioStr.isNullOrEmpty()) return 0
+
+        val primerFechaEvento = try {
+            LocalDateTime.parse(minInicioStr).toLocalDate()
+        } catch (e: Exception) {
+            return 0
+        }
+
+        var lunesEvaluado = SemanaUtil.inicioDeSemana(primerFechaEvento)
+        var cierresGenerados = 0
+
+        while (lunesEvaluado.isBefore(lunesActual)) {
+            val desdeIso = SemanaUtil.desdeISO(lunesEvaluado)
+            val hastaIso = SemanaUtil.hastaISO(lunesEvaluado)
+            val semanaInicioStr = lunesEvaluado.toString() // yyyy-MM-dd
+            val semanaFinStr = lunesEvaluado.plusDays(6).toString() // yyyy-MM-dd
+
+            val queryExiste = """
+                SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_REPORTES}
+                WHERE ${DatabaseHelper.COLUMN_REPORTE_SEMANA_INICIO} = ?
+            """.trimIndent()
+
+            var existeReporte = false
+            val cursorExiste = db.rawQuery(queryExiste, arrayOf(semanaInicioStr))
+            cursorExiste.use {
+                if (it.moveToFirst() && it.getInt(0) > 0) {
+                    existeReporte = true
+                }
+            }
+
+            if (!existeReporte) {
+                // AJUSTE PENDIENTE 1: No generar el reporte si hay un evento en curso que empezó en esa semana
+                val queryEventoEnCursoEnSemana = """
+                    SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_EVENTOS}
+                    WHERE ${DatabaseHelper.COLUMN_EVENTO_FIN} IS NULL
+                      AND ${DatabaseHelper.COLUMN_EVENTO_INICIO} >= ?
+                      AND ${DatabaseHelper.COLUMN_EVENTO_INICIO} < ?
+                """.trimIndent()
+
+                var hayEventoEnCurso = false
+                val cursorEnCurso = db.rawQuery(queryEventoEnCursoEnSemana, arrayOf(desdeIso, hastaIso))
+                cursorEnCurso.use {
+                    if (it.moveToFirst() && it.getInt(0) > 0) {
+                        hayEventoEnCurso = true
+                    }
+                }
+
+                val queryEventos = """
+                    SELECT COUNT(*) FROM ${DatabaseHelper.TABLE_EVENTOS}
+                    WHERE ${DatabaseHelper.COLUMN_EVENTO_FIN} IS NOT NULL
+                      AND ${DatabaseHelper.COLUMN_EVENTO_INICIO} >= ?
+                      AND ${DatabaseHelper.COLUMN_EVENTO_INICIO} < ?
+                """.trimIndent()
+
+                var hayEventos = false
+                val cursorEventos = db.rawQuery(queryEventos, arrayOf(desdeIso, hastaIso))
+                cursorEventos.use {
+                    if (it.moveToFirst() && it.getInt(0) > 0) {
+                        hayEventos = true
+                    }
+                }
+
+                if (hayEventos && !hayEventoEnCurso) {
+                    db.beginTransaction()
+                    try {
+                        val queryTotales = """
+                            SELECT c.${DatabaseHelper.COLUMN_CATEGORIA_ID} AS cat_id,
+                                   COALESCE(SUM(e.${DatabaseHelper.COLUMN_EVENTO_DURACION_SEGUNDOS}), 0) AS total_seg
+                            FROM ${DatabaseHelper.TABLE_CATEGORIAS} c
+                            LEFT JOIN ${DatabaseHelper.TABLE_TAREAS} t ON t.${DatabaseHelper.COLUMN_TAREA_CATEGORIA_ID} = c.${DatabaseHelper.COLUMN_CATEGORIA_ID}
+                            LEFT JOIN ${DatabaseHelper.TABLE_EVENTOS} e ON e.${DatabaseHelper.COLUMN_EVENTO_TAREA_ID} = t.${DatabaseHelper.COLUMN_TAREA_ID}
+                                 AND e.${DatabaseHelper.COLUMN_EVENTO_FIN} IS NOT NULL
+                                 AND e.${DatabaseHelper.COLUMN_EVENTO_INICIO} >= ?
+                                 AND e.${DatabaseHelper.COLUMN_EVENTO_INICIO} < ?
+                            GROUP BY c.${DatabaseHelper.COLUMN_CATEGORIA_ID}
+                        """.trimIndent()
+
+                        val cursorTotales = db.rawQuery(queryTotales, arrayOf(desdeIso, hastaIso))
+                        cursorTotales.use {
+                            val catIdIdx = it.getColumnIndexOrThrow("cat_id")
+                            val segIdx = it.getColumnIndexOrThrow("total_seg")
+
+                            while (it.moveToNext()) {
+                                val catId = it.getInt(catIdIdx)
+                                val seg = it.getLong(segIdx)
+                                val pct = SemanaUtil.porcentaje(seg)
+
+                                val values = ContentValues().apply {
+                                    put(DatabaseHelper.COLUMN_REPORTE_SEMANA_INICIO, semanaInicioStr)
+                                    put(DatabaseHelper.COLUMN_REPORTE_SEMANA_FIN, semanaFinStr)
+                                    put(DatabaseHelper.COLUMN_REPORTE_CATEGORIA_ID, catId)
+                                    put(DatabaseHelper.COLUMN_REPORTE_DURACION_SEGUNDOS, seg)
+                                    put(DatabaseHelper.COLUMN_REPORTE_PORCENTAJE, pct)
+                                }
+                                db.insertWithOnConflict(
+                                    DatabaseHelper.TABLE_REPORTES,
+                                    null,
+                                    values,
+                                    SQLiteDatabase.CONFLICT_IGNORE
+                                )
+                            }
+                        }
+                        db.setTransactionSuccessful()
+                        cierresGenerados++
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        db.endTransaction()
+                    }
+                }
+            }
+
+            lunesEvaluado = lunesEvaluado.plusWeeks(1)
+        }
+
+        return cierresGenerados
+    }
+
+    // ==================== REPORTES (HU-08 SPRINT 4) ====================
+
+    fun obtenerSemanasConReporte(): List<SemanaReporte> {
+        val lista = mutableListOf<SemanaReporte>()
+        val db = dbHelper.readableDatabase
+
+        val query = """
+            SELECT DISTINCT ${DatabaseHelper.COLUMN_REPORTE_SEMANA_INICIO}, ${DatabaseHelper.COLUMN_REPORTE_SEMANA_FIN}
+            FROM ${DatabaseHelper.TABLE_REPORTES}
+            ORDER BY ${DatabaseHelper.COLUMN_REPORTE_SEMANA_INICIO} DESC
+        """.trimIndent()
+
+        val cursor = db.rawQuery(query, null)
+        val dateFormatter = DateTimeFormatter.ofPattern("dd/MM/yyyy")
+
+        cursor.use {
+            val inicioIdx = it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_REPORTE_SEMANA_INICIO)
+            val finIdx = it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_REPORTE_SEMANA_FIN)
+
+            while (it.moveToNext()) {
+                val inicioStr = it.getString(inicioIdx) ?: ""
+                val finStr = it.getString(finIdx) ?: ""
+
+                val inicioDate = try { LocalDate.parse(inicioStr) } catch (e: Exception) { null }
+                val finDate = try { LocalDate.parse(finStr) } catch (e: Exception) { null }
+
+                val etiqueta = if (inicioDate != null && finDate != null) {
+                    "${inicioDate.format(dateFormatter)} – ${finDate.format(dateFormatter)}"
+                } else {
+                    "$inicioStr – $finStr"
+                }
+
+                lista.add(
+                    SemanaReporte(
+                        semanaInicio = inicioStr,
+                        semanaFin = finStr,
+                        etiqueta = etiqueta
+                    )
+                )
+            }
+        }
+        return lista
+    }
+
+    fun obtenerDetalleReporte(semanaInicio: String): List<ReporteItem> {
+        val lista = mutableListOf<ReporteItem>()
+        val db = dbHelper.readableDatabase
+
+        val query = """
+            SELECT r.${DatabaseHelper.COLUMN_REPORTE_CATEGORIA_ID} AS cat_id,
+                   c.${DatabaseHelper.COLUMN_CATEGORIA_NOMBRE} AS cat_nombre,
+                   r.${DatabaseHelper.COLUMN_REPORTE_DURACION_SEGUNDOS} AS total_seg,
+                   r.${DatabaseHelper.COLUMN_REPORTE_PORCENTAJE} AS pct
+            FROM ${DatabaseHelper.TABLE_REPORTES} r
+            JOIN ${DatabaseHelper.TABLE_CATEGORIAS} c ON r.${DatabaseHelper.COLUMN_REPORTE_CATEGORIA_ID} = c.${DatabaseHelper.COLUMN_CATEGORIA_ID}
+            WHERE r.${DatabaseHelper.COLUMN_REPORTE_SEMANA_INICIO} = ?
+            ORDER BY c.${DatabaseHelper.COLUMN_CATEGORIA_NOMBRE} COLLATE NOCASE ASC
+        """.trimIndent()
+
+        val cursor = db.rawQuery(query, arrayOf(semanaInicio))
+        cursor.use {
+            val catIdIdx = it.getColumnIndexOrThrow("cat_id")
+            val nomIdx = it.getColumnIndexOrThrow("cat_nombre")
+            val segIdx = it.getColumnIndexOrThrow("total_seg")
+            val pctIdx = it.getColumnIndexOrThrow("pct")
+
+            while (it.moveToNext()) {
+                val catId = it.getInt(catIdIdx)
+                val catNombre = it.getString(nomIdx) ?: ""
+                val seg = it.getLong(segIdx)
+                val pct = it.getDouble(pctIdx)
+
+                lista.add(
+                    ReporteItem(
+                        categoriaId = catId,
+                        nombre = catNombre,
+                        segundos = seg,
+                        porcentaje = pct
+                    )
+                )
+            }
+        }
+        return lista
+    }
+
+    fun obtenerEventosDeSemana(semanaInicio: String): List<Evento> {
+        val lunes = try { LocalDate.parse(semanaInicio) } catch (e: Exception) { return emptyList() }
+        val desdeIso = SemanaUtil.desdeISO(lunes)
+        val hastaIso = SemanaUtil.hastaISO(lunes)
+
+        val lista = mutableListOf<Evento>()
+        val db = dbHelper.readableDatabase
+
+        val query = """
+            SELECT e.${DatabaseHelper.COLUMN_EVENTO_ID}, 
+                   e.${DatabaseHelper.COLUMN_EVENTO_TAREA_ID}, 
+                   e.${DatabaseHelper.COLUMN_EVENTO_INICIO}, 
+                   e.${DatabaseHelper.COLUMN_EVENTO_FIN}, 
+                   e.${DatabaseHelper.COLUMN_EVENTO_DURACION_SEGUNDOS}, 
+                   t.${DatabaseHelper.COLUMN_TAREA_NOMBRE} AS tarea_nombre, 
+                   c.${DatabaseHelper.COLUMN_CATEGORIA_NOMBRE} AS categoria_nombre
+            FROM ${DatabaseHelper.TABLE_EVENTOS} e
+            JOIN ${DatabaseHelper.TABLE_TAREAS} t ON e.${DatabaseHelper.COLUMN_EVENTO_TAREA_ID} = t.${DatabaseHelper.COLUMN_TAREA_ID}
+            JOIN ${DatabaseHelper.TABLE_CATEGORIAS} c ON t.${DatabaseHelper.COLUMN_TAREA_CATEGORIA_ID} = c.${DatabaseHelper.COLUMN_CATEGORIA_ID}
+            WHERE e.${DatabaseHelper.COLUMN_EVENTO_FIN} IS NOT NULL
+              AND e.${DatabaseHelper.COLUMN_EVENTO_INICIO} >= ?
+              AND e.${DatabaseHelper.COLUMN_EVENTO_INICIO} < ?
+            ORDER BY e.${DatabaseHelper.COLUMN_EVENTO_INICIO} DESC
+        """.trimIndent()
+
+        val cursor = db.rawQuery(query, arrayOf(desdeIso, hastaIso))
+        cursor.use {
+            val idIdx = it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EVENTO_ID)
+            val tareaIdIdx = it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EVENTO_TAREA_ID)
+            val inicioIdx = it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EVENTO_INICIO)
+            val finIdx = it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EVENTO_FIN)
+            val duracionIdx = it.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EVENTO_DURACION_SEGUNDOS)
+            val tareaNomIdx = it.getColumnIndexOrThrow("tarea_nombre")
+            val catNomIdx = it.getColumnIndexOrThrow("categoria_nombre")
+
+            while (it.moveToNext()) {
+                val id = it.getInt(idIdx)
+                val tareaId = it.getInt(tareaIdIdx)
+                val inicioStr = it.getString(inicioIdx)
+                val finStr = it.getString(finIdx)
+                val duracionSeg = it.getLong(duracionIdx)
+                val tareaNombre = it.getString(tareaNomIdx) ?: ""
+                val categoriaNombre = it.getString(catNomIdx) ?: ""
+
+                val inicio = try { LocalDateTime.parse(inicioStr) } catch (e: Exception) { LocalDateTime.now() }
+                val fin = if (finStr != null) try { LocalDateTime.parse(finStr) } catch (e: Exception) { null } else null
+                val duracion = Duration.ofSeconds(duracionSeg)
+
+                lista.add(
+                    Evento(
+                        id = id,
+                        tareaId = tareaId,
+                        tareaNombre = tareaNombre,
+                        categoriaNombre = categoriaNombre,
+                        inicio = inicio,
+                        fin = fin,
+                        duracion = duracion
+                    )
+                )
+            }
+        }
+        return lista
+    }
+
+    fun obtenerCantidadReportes(): Int {
+        val db = dbHelper.readableDatabase
+        val cursor = db.rawQuery("SELECT COUNT(DISTINCT ${DatabaseHelper.COLUMN_REPORTE_SEMANA_INICIO}) FROM ${DatabaseHelper.TABLE_REPORTES}", null)
+        cursor.use {
+            if (it.moveToFirst()) {
+                return it.getInt(0)
+            }
+        }
+        return 0
     }
 
     companion object {
