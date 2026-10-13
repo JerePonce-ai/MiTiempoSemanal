@@ -24,7 +24,9 @@ import com.senati.mitiemposemanal.jponce.ui.CategoriasActivity
 import com.senati.mitiemposemanal.jponce.ui.CategoryStyleHelper
 import com.senati.mitiemposemanal.jponce.ui.EventosActivity
 import com.senati.mitiemposemanal.jponce.ui.TareasActivity
+import com.senati.mitiemposemanal.jponce.util.SemanaUtil
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 class MainActivity : AppCompatActivity() {
@@ -70,7 +72,7 @@ class MainActivity : AppCompatActivity() {
             insets
         }
 
-        // Subtítulo exacto requerido: "[NOMBRE] · v0.2.0 (2)"
+        // Subtítulo exacto requerido: "[NOMBRE] · v0.3.0 (3)"
         binding.tvSubtitle.text = getString(
             R.string.main_subtitle_format,
             getString(R.string.user_name),
@@ -154,8 +156,15 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun actualizarTarjeTuSemana() {
-        val stats = repository.obtenerEstadisticasSemanales()
-        if (stats.isEmpty()) {
+        val hoy = LocalDate.now()
+        val lunes = SemanaUtil.inicioDeSemana(hoy)
+        val desde = SemanaUtil.desdeISO(lunes)
+        val hasta = SemanaUtil.hastaISO(lunes)
+
+        val resumen = repository.obtenerResumenSemanal(desde, hasta)
+        val categoriasConTiempo = resumen.filter { it.segundos > 0L }
+
+        if (categoriasConTiempo.isEmpty()) {
             binding.tvWeekEmptyState.visibility = View.VISIBLE
             binding.cardSegmentedBarContainer.visibility = View.GONE
             binding.layoutWeekLegend.visibility = View.GONE
@@ -167,9 +176,9 @@ class MainActivity : AppCompatActivity() {
             binding.tvWeekTotalTime.visibility = View.VISIBLE
 
             var totalSegundosSemana = 0L
-            stats.forEach { totalSegundosSemana += it.duracionTotal.seconds }
+            categoriasConTiempo.forEach { totalSegundosSemana += it.segundos }
 
-            val totalStr = Repository.formatearDuracionLegible(totalSegundosSemana)
+            val totalStr = SemanaUtil.formatearTiempo(totalSegundosSemana)
             binding.tvWeekTotalTime.text = getString(R.string.week_summary_total, totalStr)
 
             // Renderizar barra segmentada
@@ -179,15 +188,16 @@ class MainActivity : AppCompatActivity() {
             val colorOnSurface = MaterialColors.getColor(this, com.google.android.material.R.attr.colorOnSurface, Color.BLACK)
             val colorPrimary = MaterialColors.getColor(this, com.google.android.material.R.attr.colorPrimary, Color.BLUE)
 
-            for (stat in stats) {
-                val style = CategoryStyleHelper.getStyle(this, stat.categoriaNombre)
+            for (stat in categoriasConTiempo) {
+                val style = CategoryStyleHelper.getStyle(this, stat.nombre)
+                val proporcion = (stat.segundos.toFloat() / totalSegundosSemana.toFloat()) * 100f
 
                 // Segmento en la barra
                 val segment = View(this).apply {
                     layoutParams = LinearLayout.LayoutParams(
                         0,
                         LinearLayout.LayoutParams.MATCH_PARENT,
-                        stat.porcentaje
+                        proporcion
                     )
                     setBackgroundColor(style.iconColor)
                 }
@@ -211,14 +221,14 @@ class MainActivity : AppCompatActivity() {
 
                     val label = TextView(context).apply {
                         layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
-                        text = "${stat.categoriaNombre} (${stat.porcentaje.toInt()}%)"
+                        text = stat.nombre
                         setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodyMedium)
                         setTextColor(colorOnSurface)
                     }
 
                     val time = TextView(context).apply {
                         layoutParams = LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-                        text = Repository.formatearDuracionLegible(stat.duracionTotal.seconds)
+                        text = SemanaUtil.formatearTiempo(stat.segundos)
                         setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_LabelLarge)
                         setTextColor(colorPrimary)
                     }

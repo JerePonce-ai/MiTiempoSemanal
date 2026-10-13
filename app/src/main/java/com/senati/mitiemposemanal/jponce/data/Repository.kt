@@ -6,8 +6,8 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
 import com.senati.mitiemposemanal.jponce.model.Categoria
-import com.senati.mitiemposemanal.jponce.model.CategoriaEstadistica
 import com.senati.mitiemposemanal.jponce.model.Evento
+import com.senati.mitiemposemanal.jponce.model.ResumenCategoria
 import com.senati.mitiemposemanal.jponce.model.Tarea
 import java.time.Duration
 import java.time.LocalDateTime
@@ -389,7 +389,6 @@ class Repository(context: Context) {
         val db = dbHelper.writableDatabase
         db.beginTransaction()
         return try {
-            // Verificar si ya hay un evento en curso
             val activo = obtenerEventoEnCurso()
             if (activo != null) {
                 Pair(false, "Ya hay un evento en curso: ${activo.tareaNombre}")
@@ -433,7 +432,6 @@ class Repository(context: Context) {
             if (activo != null) {
                 Pair(false, "Ya hay un evento en curso: ${activo.tareaNombre}")
             } else {
-                // Insertar nueva tarea
                 val valuesTarea = ContentValues().apply {
                     put(DatabaseHelper.COLUMN_TAREA_NOMBRE, nombreClean)
                     put(DatabaseHelper.COLUMN_TAREA_CATEGORIA_ID, categoriaId)
@@ -442,7 +440,6 @@ class Repository(context: Context) {
                 if (newTaskId == -1L) {
                     Pair(false, "Ya existe una tarea con el nombre '$nombreClean'")
                 } else {
-                    // Insertar evento
                     val ahora = LocalDateTime.now().toString()
                     val valuesEvento = ContentValues().apply {
                         put(DatabaseHelper.COLUMN_EVENTO_TAREA_ID, newTaskId.toInt())
@@ -575,47 +572,47 @@ class Repository(context: Context) {
         return 0
     }
 
-    fun obtenerEstadisticasSemanales(): List<CategoriaEstadistica> {
-        val hace7Dias = LocalDateTime.now().minusDays(7).toString()
+    // ==================== RESUMEN SEMANAL (SPRINT 3) ====================
+
+    fun obtenerResumenSemanal(desde: String, hasta: String): List<ResumenCategoria> {
+        val lista = mutableListOf<ResumenCategoria>()
         val db = dbHelper.readableDatabase
 
         val query = """
-            SELECT c.${DatabaseHelper.COLUMN_CATEGORIA_NOMBRE} AS categoria_nombre, 
-                   SUM(e.${DatabaseHelper.COLUMN_EVENTO_DURACION_SEGUNDOS}) AS total_segundos
-            FROM ${DatabaseHelper.TABLE_EVENTOS} e
-            JOIN ${DatabaseHelper.TABLE_TAREAS} t ON e.${DatabaseHelper.COLUMN_EVENTO_TAREA_ID} = t.${DatabaseHelper.COLUMN_TAREA_ID}
-            JOIN ${DatabaseHelper.TABLE_CATEGORIAS} c ON t.${DatabaseHelper.COLUMN_TAREA_CATEGORIA_ID} = c.${DatabaseHelper.COLUMN_CATEGORIA_ID}
-            WHERE e.${DatabaseHelper.COLUMN_EVENTO_FIN} IS NOT NULL
-              AND e.${DatabaseHelper.COLUMN_EVENTO_INICIO} >= ?
-            GROUP BY c.${DatabaseHelper.COLUMN_CATEGORIA_ID}
-            ORDER BY total_segundos DESC
+            SELECT c.${DatabaseHelper.COLUMN_CATEGORIA_ID} AS cat_id,
+                   c.${DatabaseHelper.COLUMN_CATEGORIA_NOMBRE} AS cat_nombre,
+                   COALESCE(SUM(e.${DatabaseHelper.COLUMN_EVENTO_DURACION_SEGUNDOS}), 0) AS total_seg
+            FROM ${DatabaseHelper.TABLE_CATEGORIAS} c
+            LEFT JOIN ${DatabaseHelper.TABLE_TAREAS} t ON t.${DatabaseHelper.COLUMN_TAREA_CATEGORIA_ID} = c.${DatabaseHelper.COLUMN_CATEGORIA_ID}
+            LEFT JOIN ${DatabaseHelper.TABLE_EVENTOS} e ON e.${DatabaseHelper.COLUMN_EVENTO_TAREA_ID} = t.${DatabaseHelper.COLUMN_TAREA_ID}
+                 AND e.${DatabaseHelper.COLUMN_EVENTO_FIN} IS NOT NULL
+                 AND e.${DatabaseHelper.COLUMN_EVENTO_INICIO} >= ?
+                 AND e.${DatabaseHelper.COLUMN_EVENTO_INICIO} < ?
+            GROUP BY c.${DatabaseHelper.COLUMN_CATEGORIA_ID}, c.${DatabaseHelper.COLUMN_CATEGORIA_NOMBRE}
+            ORDER BY c.${DatabaseHelper.COLUMN_CATEGORIA_NOMBRE} COLLATE NOCASE ASC
         """.trimIndent()
 
-        val cursor = db.rawQuery(query, arrayOf(hace7Dias))
-        val mapaTiempos = mutableMapOf<String, Long>()
-        var sumaTotalSegundos = 0L
-
+        val cursor = db.rawQuery(query, arrayOf(desde, hasta))
         cursor.use {
-            val catIdx = it.getColumnIndexOrThrow("categoria_nombre")
-            val sumIdx = it.getColumnIndexOrThrow("total_segundos")
+            val idIdx = it.getColumnIndexOrThrow("cat_id")
+            val nomIdx = it.getColumnIndexOrThrow("cat_nombre")
+            val segIdx = it.getColumnIndexOrThrow("total_seg")
+
             while (it.moveToNext()) {
-                val catNombre = it.getString(catIdx) ?: ""
-                val seg = it.getLong(sumIdx)
-                mapaTiempos[catNombre] = seg
-                sumaTotalSegundos += seg
+                val catId = it.getInt(idIdx)
+                val catNombre = it.getString(nomIdx) ?: ""
+                val totalSeg = it.getLong(segIdx)
+
+                lista.add(
+                    ResumenCategoria(
+                        categoriaId = catId,
+                        nombre = catNombre,
+                        segundos = totalSeg
+                    )
+                )
             }
         }
-
-        if (sumaTotalSegundos == 0L) return emptyList()
-
-        return mapaTiempos.map { (catNombre, seg) ->
-            val porcentaje = (seg.toFloat() / sumaTotalSegundos.toFloat()) * 100f
-            CategoriaEstadistica(
-                categoriaNombre = catNombre,
-                duracionTotal = Duration.ofSeconds(seg),
-                porcentaje = porcentaje
-            )
-        }
+        return lista
     }
 
     companion object {

@@ -49,6 +49,54 @@
             android:orientation="vertical"
             android:paddingBottom="48dp">
 
+            <!-- Card Resumen Semanal por Categoría (Sprint 3) -->
+            <com.google.android.material.card.MaterialCardView
+                android:id="@+id/cardResumenSemanal"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginHorizontal="16dp"
+                android:layout_marginTop="12dp"
+                android:layout_marginBottom="4dp"
+                app:cardBackgroundColor="?attr/colorSurfaceContainer"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="2dp"
+                app:strokeWidth="0dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:id="@+id/tvWeekRangeTitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:textAppearance="?attr/textAppearanceTitleMedium"
+                        android:textColor="?attr/colorOnSurface"
+                        android:textStyle="bold"
+                        tools:text="Semana 12/10/2026 – 18/10/2026" />
+
+                    <TextView
+                        android:id="@+id/tvWeekBaseSubtitle"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="2dp"
+                        android:text="@string/week_panel_base_subtitle"
+                        android:textAppearance="?attr/textAppearanceBodySmall"
+                        android:textColor="?attr/colorOnSurfaceVariant" />
+
+                    <LinearLayout
+                        android:id="@+id/containerResumenSemanal"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical" />
+
+                </LinearLayout>
+
+            </com.google.android.material.card.MaterialCardView>
+
             <!-- Card Evento en Curso (Visible si hay un evento activo) -->
             <com.google.android.material.card.MaterialCardView
                 android:id="@+id/cardEventoEnCurso"

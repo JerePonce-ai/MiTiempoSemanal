@@ -80,13 +80,17 @@
     <string name="section_history_title">Historial de eventos</string>
     <string name="search_create_new_task_item">Crear «%1$s»</string>
 
-    <!-- Greetings & Week Stats -->
+    <!-- Greetings & Week Stats (Sprint 3) -->
     <string name="greeting_morning">Buenos días</string>
     <string name="greeting_afternoon">Buenas tardes</string>
     <string name="greeting_evening">Buenas noches</string>
     <string name="week_summary_title">Tu semana</string>
-    <string name="week_summary_empty">Sin tiempo registrado en los últimos 7 días</string>
+    <string name="week_summary_empty">Sin tiempo registrado en esta semana</string>
     <string name="week_summary_total">Total registrado esta semana: %1$s</string>
+    <string name="week_panel_base_subtitle">Base: 168 h por semana</string>
+    <string name="unregistered_label">Sin registrar</string>
+    <string name="cd_resumen_row">%1$s: %2$s, %3$s</string>
+    <string name="snackbar_resumen_exacto">%1$s: %2$s ÷ 168 h = %3$s</string>
     <string name="header_today">Hoy</string>
     <string name="header_yesterday">Ayer</string>
 
